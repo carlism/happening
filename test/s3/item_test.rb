@@ -50,7 +50,7 @@ class ItemTest < Test::Unit::TestCase
         Happening::AWS.set_defaults({})
       end
     end
-    
+
     context "validation" do
       should "require a key" do
         assert_raise(ArgumentError) do
@@ -153,7 +153,7 @@ class ItemTest < Test::Unit::TestCase
           end
         end
       end
-      
+
       should "call the on success callback" do
         stub_request(:get, 'https://bucket.s3.amazonaws.com:443/the-key').to_return(fake_response("data-here"))
         called = false
@@ -165,6 +165,20 @@ class ItemTest < Test::Unit::TestCase
           EM.assertions do
             assert called
             assert_equal "data-here\n", data
+            assert_requested :get, 'https://bucket.s3.amazonaws.com:443/the-key', :times => 1
+          end
+        end
+      end
+
+      should "pass on caller supplied headers" do
+        stub_request(:get, 'https://bucket.s3.amazonaws.com:443/the-key').
+          with(:headers => {'ETag' => 'abc1234'}).
+          to_return(:status => 200, :body => "", :headers => {})
+        @item = Happening::S3::Item.new('bucket', 'the-key')
+        EM.run do
+          request = @item.get(:headers => {'ETag'=>'abc1234'})
+          EM.assertions do
+            assert_equal @item, request.item
             assert_requested :get, 'https://bucket.s3.amazonaws.com:443/the-key', :times => 1
           end
         end
@@ -222,7 +236,7 @@ class ItemTest < Test::Unit::TestCase
           EM.assertions do
             assert_requested :get, 'https://bucket.s3.amazonaws.com:443/the-key', :times => 1
           end
-        end 
+        end
       end
 
       should "retry on error" do
@@ -341,7 +355,7 @@ class ItemTest < Test::Unit::TestCase
         @item = Happening::S3::Item.new('bucket', 'the-key',
           :aws_access_key_id => 'abc',
           :aws_secret_access_key => '123')
-        
+
         EM.run do
           @item.delete(:on_error => Proc.new{} ) #ignore error
           EM.assertions do
@@ -599,7 +613,7 @@ class ItemTest < Test::Unit::TestCase
           :ssl => {
             :verify_peer => true,
             :cert_chain_file => '/etc/foo.ca'}).returns(request)
-        item.put 'data that will be ignored', :file => '/test/path/to/file'  
+        item.put 'data that will be ignored', :file => '/test/path/to/file'
       end
     end
 
@@ -613,7 +627,7 @@ class ItemTest < Test::Unit::TestCase
         item = Happening::S3::Item.new('bucket', 'the-key',
           :aws_access_key_id => 'abc',
           :aws_secret_access_key => '123')
-        
+
         assert item.options[:ssl][:verify_peer]
         assert_equal '/etc/foo.ca', item.options[:ssl][:cert_chain_file]
       end
