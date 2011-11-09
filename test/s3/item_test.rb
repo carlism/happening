@@ -184,6 +184,23 @@ class ItemTest < Test::Unit::TestCase
         end
       end
 
+      should "call the not_modified callback" do
+        stub_request(:get, 'https://bucket.s3.amazonaws.com:443/the-key').
+          with(:headers => {'ETag' => 'abc1234'}).
+          to_return(:status => 304, :body => "", :headers => {})
+        called = false
+        on_not_modified = Proc.new {|http| called = true}
+        @item = Happening::S3::Item.new('bucket', 'the-key')
+        EM.run do
+          request = @item.get(:headers=>{'ETag'=>'abc1234'}, :on_not_modified=>on_not_modified)
+          EM.assertions do
+            assert called
+            assert_equal @item, request.item
+            assert_requested :get, 'https://bucket.s3.amazonaws.com:443/the-key', :times => 1
+          end
+        end
+      end
+
       should "support direct blocks" do
         stub_request(:get, 'https://bucket.s3.amazonaws.com:443/the-key').to_return(fake_response("data-here"))
         called = false
