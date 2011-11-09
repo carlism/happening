@@ -172,11 +172,11 @@ class ItemTest < Test::Unit::TestCase
 
       should "pass on caller supplied headers" do
         stub_request(:get, 'https://bucket.s3.amazonaws.com:443/the-key').
-          with(:headers => {'ETag' => 'abc1234'}).
+          with(:headers => {'If-None-Match' => 'abc1234'}).
           to_return(:status => 200, :body => "", :headers => {})
         @item = Happening::S3::Item.new('bucket', 'the-key')
         EM.run do
-          request = @item.get(:headers => {'ETag'=>'abc1234'})
+          request = @item.get(:headers => {'If-None-Match'=>'abc1234'})
           EM.assertions do
             assert_equal @item, request.item
             assert_requested :get, 'https://bucket.s3.amazonaws.com:443/the-key', :times => 1
